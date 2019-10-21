@@ -67,8 +67,42 @@ const (
 	InstallerKind = "Installer"
 )
 
+type DownloadCounter struct {
+	Current uint64
+	Total   uint64
+}
+
+func (w *DownloadCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	w.Current += uint64(n)
+	w.PrintProgress()
+	return n, nil
+}
+
+func (w DownloadCounter) PrintProgress() {
+	fmt.Printf("\r%s", strings.Repeat(" ", 35))
+	c := float64(w.Current)
+	t := float64(w.Total)
+
+	if p := c/t*100; p != 100.0 {
+		fmt.Printf("\rDownloading: %.2f%%", p)
+	} else {
+		fmt.Println("\rDownload complete！")
+	}
+}
+
 // Download 下载版本另存为指定文件并校验sha256哈希值
 func (pkg *Package) Download(dst string) (size int64, err error) {
+	// HEAD
+	h, err := http.Head(pkg.URL)
+	if err != nil {
+		return 0, NewDownloadError(pkg.URL, err)
+	}
+	l := h.ContentLength
+	dc := &DownloadCounter{
+		Total: uint64(l),
+	}
+
 	resp, err := http.Get(pkg.URL)
 	if err != nil {
 		return 0, NewDownloadError(pkg.URL, err)
@@ -79,7 +113,7 @@ func (pkg *Package) Download(dst string) (size int64, err error) {
 		return 0, err
 	}
 	defer f.Close()
-	size, err = io.Copy(f, resp.Body)
+	size, err = io.Copy(f, io.TeeReader(resp.Body, dc))
 	if err != nil {
 		return 0, NewDownloadError(pkg.URL, err)
 	}
@@ -125,6 +159,7 @@ const (
 
 // VerifyChecksum 验证目标文件的校验和与当前安装包的校验和是否一致
 func (pkg *Package) VerifyChecksum(filename string) (err error) {
+	fmt.Printf("Verifying checksum: %s\n", filename)
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -147,5 +182,6 @@ func (pkg *Package) VerifyChecksum(filename string) (err error) {
 	if pkg.Checksum != fmt.Sprintf("%x", h.Sum(nil)) {
 		return ErrChecksumNotMatched
 	}
+	fmt.Println("Verification successful!")
 	return nil
 }

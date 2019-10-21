@@ -41,11 +41,13 @@ func install(ctx *cli.Context) (err error) {
 	if err != nil {
 		return cli.NewExitError(errstring(err), 1)
 	}
+
 	// 查找版本下当前平台的安装包
 	pkg, err := v.FindPackage(version.ArchiveKind, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return cli.NewExitError(errstring(err), 1)
 	}
+	fmt.Printf("查找package %s 成功.", v.Name)
 	var ext string
 	if runtime.GOOS == "windows" {
 		ext = "zip"
@@ -86,6 +88,6 @@ func install(ctx *cli.Context) (err error) {
 	if err := os.Symlink(targetV, goroot); err != nil {
 		return cli.NewExitError(errstring(err), 1)
 	}
-	fmt.Println("Installed successfully")
+	fmt.Printf("Installed successfully(%s)\n", targetV)
 	return nil
 }

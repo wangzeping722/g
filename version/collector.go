@@ -131,7 +131,8 @@ func (c *Collector) UnstableVersions() (items []*Version, err error) {
 func (c *Collector) ArchivedVersions() (items []*Version, err error) {
 	c.doc.Find("#archive").Find("div.toggle").Each(func(i int, div *goquery.Selection) {
 		vname, ok := div.Attr("id")
-		if !ok {
+		// 忽略版本号1
+		if !ok || vname == "go1"{
 			return
 		}
 		items = append(items, &Version{
