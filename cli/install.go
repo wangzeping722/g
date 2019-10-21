@@ -47,7 +47,6 @@ func install(ctx *cli.Context) (err error) {
 	if err != nil {
 		return cli.NewExitError(errstring(err), 1)
 	}
-	fmt.Printf("查找package %s 成功.", v.Name)
 	var ext string
 	if runtime.GOOS == "windows" {
 		ext = "zip"
@@ -58,6 +57,7 @@ func install(ctx *cli.Context) (err error) {
 
 	if _, err = os.Stat(filename); os.IsNotExist(err) {
 		// 本地不存在安装包，从远程下载并检查校验和。
+		fmt.Printf("Find package in remote.\n")
 		if _, err = pkg.Download(filename); err != nil {
 			return cli.NewExitError(errstring(err), 1)
 		}
@@ -66,6 +66,7 @@ func install(ctx *cli.Context) (err error) {
 		}
 	} else {
 		// 本地存在安装包，检查校验和。
+		fmt.Printf("Find package in local.\n")
 		if err = pkg.VerifyChecksum(filename); err != nil {
 			_ = os.Remove(filename)
 			return cli.NewExitError(errstring(err), 1)
